@@ -14,7 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 
 
-SEARCH_URL = "https://aca-prod.accela.com/SBC/Cap/CapHome.aspx?module=Building&TabName=Home"
+SEARCH_URL = "https://aca-prod.accela.com/SBC/Cap/CapHome.aspx?module=Building"
 DATE_INPUT_FILE = os.path.join(os.getcwd(), "Date_Input.xlsx")
 OUTPUT_FILE = os.path.join(
     os.getcwd(),
