@@ -331,8 +331,7 @@ def get_data_row_by_position(driver, position):
 
     if position < 1 or position > len(valid_rows):
         raise IndexError(
-            f"Row position {position} out of range. Found {
-                len(valid_rows)} valid rows.")
+            f"Row position {position} out of range. Found {len(valid_rows)} valid rows.")
 
     return valid_rows[position - 1]
 
