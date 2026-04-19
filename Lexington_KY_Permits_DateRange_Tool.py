@@ -18,8 +18,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 SEARCH_URL = "https://aca-prod.accela.com/LEXKY/Cap/CapHome.aspx?module=Building&TabName=Building"
 DATE_INPUT_FILE = os.path.join(os.getcwd(), "Date_Input.xlsx")
 OUTPUT_FILE = os.path.join(
-    os.getcwd(), f"Lexington_KY_Permits_DateRange_Tool_Output_{
-        datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
+    os.getcwd(),
+    f"Lexington_KY_Permits_DateRange_Tool_Output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+)
 
 HEADERS = [
     "S.No",
