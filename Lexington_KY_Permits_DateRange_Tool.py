@@ -73,7 +73,7 @@ def clean_text(value):
 
 def create_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
+    # chrome_options.add_argument("--headless=new") # Disabled for visible local run
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument(
         "--disable-blink-features=AutomationControlled")
