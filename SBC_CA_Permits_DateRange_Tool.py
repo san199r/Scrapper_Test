@@ -249,6 +249,16 @@ def perform_automated_search(driver, wait, start_date, end_date):
 
     time.sleep(1)
 
+    log_message("Checking 'Search All Dept. Records' box...")
+    try:
+        all_records_check = driver.find_element(
+            By.ID, "ctl00_PlaceHolderMain_generalSearchForm_chkSearchAll")
+        if not all_records_check.is_selected():
+            driver.execute_script("arguments[0].click();", all_records_check)
+            time.sleep(1)
+    except Exception:
+        log_message("Checkbox 'Search All Dept. Records' not found or already checked.")
+
     log_message("Clicking Search Button...")
     search_btn = driver.find_element(
         By.ID, "ctl00_PlaceHolderMain_btnNewSearch")
