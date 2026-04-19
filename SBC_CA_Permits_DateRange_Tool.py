@@ -299,13 +299,15 @@ def detect_header_map(table):
 
     fallback = [
         "",
-        "date",
+        "action",
         "record number",
         "record type",
         "address",
+        "description",
         "status",
-        "action",
-        "expiration date",
+        "related records",
+        "project name",
+        "date",
     ]
     for i, name in enumerate(fallback):
         if name:
@@ -314,6 +316,13 @@ def detect_header_map(table):
 
 
 def get_all_data_rows_count(driver):
+    wait = WebDriverWait(driver, 15)
+    try:
+        wait.until(EC.presence_of_element_located(
+            (By.ID, "ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList")))
+    except Exception:
+        return 0
+
     rows = driver.find_elements(
         By.XPATH,
         '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]/tbody/tr[td]')
