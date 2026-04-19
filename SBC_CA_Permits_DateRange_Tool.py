@@ -11,13 +11,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 SEARCH_URL = "https://aca-prod.accela.com/SBC/Cap/CapHome.aspx?module=Building&TabName=Home"
 DATE_INPUT_FILE = os.path.join(os.getcwd(), "Date_Input.xlsx")
 OUTPUT_FILE = os.path.join(
-    os.getcwd(), f"SBC_CA_Permits_DateRange_Tool_Output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-)
+    os.getcwd(), f"SBC_CA_Permits_DateRange_Tool_Output_{
+        datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
 
 HEADERS = [
     "S.No",
@@ -73,16 +75,19 @@ def create_driver():
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--start-maximized")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument(
+        "--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-infobars")
     chrome_options.add_argument("--disable-notifications")
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option(
+        "excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option("useAutomationExtension", False)
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    driver = webdriver.Chrome(options=chrome_options)
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.set_page_load_timeout(120)
     return driver
 
@@ -125,7 +130,12 @@ def get_existing_record_numbers(path):
     wb = load_workbook(path, read_only=True)
     ws = wb.active
 
-    header_row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), None)
+    header_row = next(
+        ws.iter_rows(
+            min_row=1,
+            max_row=1,
+            values_only=True),
+        None)
     if not header_row:
         wb.close()
         return existing
@@ -162,12 +172,13 @@ def get_date_range(path=None):
     """Returns (from_date, to_date). Defaults to last 30 days if no path or file missing."""
     today = datetime.now()
     start = today - timedelta(days=30)
-    
+
     default_from = start.strftime("%m/%d/%Y")
     default_to = today.strftime("%m/%d/%Y")
 
     if not path or not os.path.exists(path):
-        log_message(f"No date input file found ({path}). Defaulting: {default_from} - {default_to}")
+        log_message(
+            f"No date input file found ({path}). Defaulting: {default_from} - {default_to}")
         return default_from, default_to
 
     try:
@@ -184,8 +195,9 @@ def get_date_range(path=None):
                 to_date = to_date.strftime("%m/%d/%Y")
             return str(from_date), str(to_date)
     except Exception as e:
-        log_message(f"Error reading dates from Excel ({e}). Using default 30-day range.")
-    
+        log_message(
+            f"Error reading dates from Excel ({e}). Using default 30-day range.")
+
     return default_from, default_to
 
 
@@ -196,19 +208,24 @@ def perform_automated_search(driver, wait, start_date, end_date):
     time.sleep(2)
 
     log_message(f"Entering date range: {start_date} to {end_date}")
-    
+
     in_iframe = False
     try:
-        start_date_field = wait.until(EC.visibility_of_element_located((By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSStartDate")))
-        end_date_field = wait.until(EC.visibility_of_element_located((By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSEndDate")))
+        start_date_field = wait.until(EC.visibility_of_element_located(
+            (By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSStartDate")))
+        end_date_field = wait.until(EC.visibility_of_element_located(
+            (By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSEndDate")))
     except Exception:
-        log_message("Date fields not found with standard IDs. Checking for iframes...")
+        log_message(
+            "Date fields not found with standard IDs. Checking for iframes...")
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
         for i, iframe in enumerate(iframes):
             driver.switch_to.frame(iframe)
             try:
-                start_date_field = driver.find_element(By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSStartDate")
-                end_date_field = driver.find_element(By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSEndDate")
+                start_date_field = driver.find_element(
+                    By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSStartDate")
+                end_date_field = driver.find_element(
+                    By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSEndDate")
                 log_message(f"Found date fields in iframe {i}")
                 in_iframe = True
                 break
@@ -216,38 +233,44 @@ def perform_automated_search(driver, wait, start_date, end_date):
                 driver.switch_to.default_content()
 
     if not in_iframe:
-        start_date_field = driver.find_element(By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSStartDate")
-        end_date_field = driver.find_element(By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSEndDate")
+        start_date_field = driver.find_element(
+            By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSStartDate")
+        end_date_field = driver.find_element(
+            By.ID, "ctl00_PlaceHolderMain_generalSearchForm_txtGSEndDate")
 
-    for field, val in [(start_date_field, start_date), (end_date_field, end_date)]:
-        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", field)
+    for field, val in [(start_date_field, start_date),
+                       (end_date_field, end_date)]:
+        driver.execute_script(
+            "arguments[0].scrollIntoView({block:'center'});", field)
         driver.execute_script("arguments[0].value = arguments[1];", field, val)
-        driver.execute_script("arguments[0].dispatchEvent(new Event('change'));", field)
-        driver.execute_script("arguments[0].dispatchEvent(new Event('blur'));", field)
+        driver.execute_script(
+            "arguments[0].dispatchEvent(new Event('change'));", field)
+        driver.execute_script(
+            "arguments[0].dispatchEvent(new Event('blur'));", field)
 
     time.sleep(1)
 
     log_message("Clicking Search Button...")
-    search_btn = driver.find_element(By.ID, "ctl00_PlaceHolderMain_btnNewSearch")
-    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", search_btn)
+    search_btn = driver.find_element(
+        By.ID, "ctl00_PlaceHolderMain_btnNewSearch")
+    driver.execute_script(
+        "arguments[0].scrollIntoView({block:'center'});",
+        search_btn)
     time.sleep(1)
-    
+
     try:
         search_btn.click()
     except Exception:
         driver.execute_script("arguments[0].click();", search_btn)
-    
+
     log_message("Waiting for results...")
     wait_ready(driver, 30)
     time.sleep(5)
 
 
 def get_result_table(driver, wait):
-    return wait.until(
-        EC.presence_of_element_located(
-            (By.XPATH, '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]')
-        )
-    )
+    return wait.until(EC.presence_of_element_located(
+        (By.XPATH, '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]')))
 
 
 def detect_header_map(table):
@@ -283,15 +306,15 @@ def detect_header_map(table):
 def get_all_data_rows_count(driver):
     rows = driver.find_elements(
         By.XPATH,
-        '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]/tbody/tr[td]'
-    )
+        '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]/tbody/tr[td]')
     count = 0
     for row in rows:
         try:
             tds = row.find_elements(By.TAG_NAME, "td")
             if len(tds) < 5:
                 continue
-            if row.find_elements(By.XPATH, './/table[contains(@class,"aca_pagination")]'):
+            if row.find_elements(
+                    By.XPATH, './/table[contains(@class,"aca_pagination")]'):
                 continue
             first_cell_text = clean_text(tds[0].text) if len(tds) > 0 else ""
             second_cell_text = clean_text(tds[1].text) if len(tds) > 1 else ""
@@ -307,8 +330,7 @@ def get_all_data_rows_count(driver):
 def get_data_row_by_position(driver, position):
     rows = driver.find_elements(
         By.XPATH,
-        '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]/tbody/tr[td]'
-    )
+        '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]/tbody/tr[td]')
 
     valid_rows = []
     for row in rows:
@@ -316,7 +338,8 @@ def get_data_row_by_position(driver, position):
             tds = row.find_elements(By.TAG_NAME, "td")
             if len(tds) < 5:
                 continue
-            if row.find_elements(By.XPATH, './/table[contains(@class,"aca_pagination")]'):
+            if row.find_elements(
+                    By.XPATH, './/table[contains(@class,"aca_pagination")]'):
                 continue
             first_cell_text = clean_text(tds[0].text) if len(tds) > 0 else ""
             second_cell_text = clean_text(tds[1].text) if len(tds) > 1 else ""
@@ -370,7 +393,8 @@ def parse_summary_from_row(driver, row, wait):
 
 def is_record_clickable(row):
     try:
-        links = row.find_elements(By.XPATH, './/a[contains(@id,"PermitNumber")]')
+        links = row.find_elements(
+            By.XPATH, './/a[contains(@id,"PermitNumber")]')
         if not links:
             return False
         link = links[0]
@@ -392,7 +416,10 @@ def open_record_in_new_tab(driver, row):
     else:
         driver.execute_script("arguments[0].click();", link)
 
-    WebDriverWait(driver, 20).until(lambda d: len(d.window_handles) > len(old_handles))
+    WebDriverWait(
+        driver, 20).until(
+        lambda d: len(
+            d.window_handles) > len(old_handles))
     new_handle = [h for h in driver.window_handles if h not in old_handles][0]
     driver.switch_to.window(new_handle)
     wait_ready(driver, 30)
@@ -430,7 +457,8 @@ def extract_applicant(soup):
 
     first = block.select_one("span.contactinfo_firstname")
     last = block.select_one("span.contactinfo_lastname")
-    full_name = clean_text(f"{first.get_text() if first else ''} {last.get_text() if last else ''}")
+    full_name = clean_text(
+        f"{first.get_text() if first else ''} {last.get_text() if last else ''}")
     result["Applicant Name"] = full_name
 
     phone1 = block.select_one("span.contactinfo_phone1 .ACA_PhoneNumberLTR")
@@ -440,7 +468,10 @@ def extract_applicant(soup):
     email_span = block.select_one("span.contactinfo_email")
     if email_span:
         email_text = clean_text(email_span.get_text(" ", strip=True))
-        email_match = re.search(r'([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})', email_text, re.I)
+        email_match = re.search(
+            r'([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})',
+            email_text,
+            re.I)
         if email_match:
             result["Applicant Mail"] = email_match.group(1)
 
@@ -469,15 +500,19 @@ def extract_licensed_professional(soup):
         text = clean_text(table.get_text("\n", strip=True))
 
     lines = [clean_text(x) for x in text.split("\n") if clean_text(x)]
-    cleaned = [l for l in lines if l.lower() not in {"licensed professional:", "licensed professional"}]
+    cleaned = [
+        l for l in lines if l.lower() not in {
+            "licensed professional:",
+            "licensed professional"}]
     lines = cleaned
 
     if not lines:
         return result
 
     result["Licensed Professional Name"] = lines[0]
-    
-    city_pat = re.compile(r".+,\s*[A-Z]{2},\s*\d{5}(?:-\d{4})?$|.+,\s*[A-Z]{2},\s*[\dA-Z\- ]+$", re.I)
+
+    city_pat = re.compile(
+        r".+,\s*[A-Z]{2},\s*\d{5}(?:-\d{4})?$|.+,\s*[A-Z]{2},\s*[\dA-Z\- ]+$", re.I)
     city_idx = -1
     for i, line in enumerate(lines):
         if city_pat.match(line):
@@ -490,8 +525,9 @@ def extract_licensed_professional(soup):
             result["Licensed Professional Address"] = lines[city_idx - 1]
         if city_idx > 1:
             result["Licensed Professional Company Name"] = lines[city_idx - 2]
-    
-    email_match = re.search(r'([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})', text, re.I)
+
+    email_match = re.search(
+        r'([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})', text, re.I)
     if email_match:
         result["Licensed Professional Mail"] = email_match.group(1)
 
@@ -504,17 +540,22 @@ def extract_project_description(soup):
 
 
 def extract_owner(soup):
-    result = {"Owner": "", "Owner Address": "", "Owner Mailing City, State, Zip": ""}
+    result = {"Owner": "", "Owner Address": "",
+              "Owner Mailing City, State, Zip": ""}
     block = find_label_block(soup, "Owner:")
     if not block:
         return result
 
-    lines = [clean_text(x) for x in block.get_text("\n", strip=True).split("\n") if clean_text(x)]
+    lines = [clean_text(x) for x in block.get_text(
+        "\n", strip=True).split("\n") if clean_text(x)]
     lines = [l for l in lines if not re.fullmatch(r"[\*\-]+", l)]
 
-    if len(lines) >= 1: result["Owner"] = lines[0].replace(" *", "").strip()
-    if len(lines) >= 2: result["Owner Address"] = lines[1]
-    if len(lines) >= 3: result["Owner Mailing City, State, Zip"] = lines[2]
+    if len(lines) >= 1:
+        result["Owner"] = lines[0].replace(" *", "").strip()
+    if len(lines) >= 2:
+        result["Owner Address"] = lines[1]
+    if len(lines) >= 3:
+        result["Owner Mailing City, State, Zip"] = lines[2]
 
     return result
 
@@ -523,7 +564,8 @@ def expand_more_detail_and_parcel(driver, wait):
     for btn_id in ["lnkMoreDetail", "lnkASI", "lnkParcelList"]:
         try:
             btn = wait.until(EC.element_to_be_clickable((By.ID, btn_id)))
-            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
+            driver.execute_script(
+                "arguments[0].scrollIntoView({block:'center'});", btn)
             time.sleep(1)
             driver.execute_script("arguments[0].click();", btn)
             time.sleep(2)
@@ -535,16 +577,20 @@ def extract_parcel(soup):
     try:
         parcel_div = soup.find("div", id=re.compile(r"palParceList"))
         if not parcel_div:
-            label = soup.find("span", string=re.compile(r"Parcel Number:", re.I))
+            label = soup.find(
+                "span", string=re.compile(
+                    r"Parcel Number:", re.I))
             if label:
                 val = label.find_next("span")
-                if val: return clean_text(val.text)
+                if val:
+                    return clean_text(val.text)
 
         if parcel_div:
             txt = clean_text(parcel_div.get_text(" ", strip=True))
             m = re.search(r'Parcel Number:\s*([A-Z0-9\-]+)', txt, re.I)
-            if m: return m.group(1).strip()
-        
+            if m:
+                return m.group(1).strip()
+
         return ""
     except Exception:
         return ""
@@ -583,13 +629,14 @@ def click_next_page(driver):
             By.XPATH,
             '//table[contains(@class,"aca_pagination")]//a[contains(normalize-space(.),"Next")]'
         )
-        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", next_link)
+        driver.execute_script(
+            "arguments[0].scrollIntoView({block:'center'});",
+            next_link)
         time.sleep(1)
         driver.execute_script("arguments[0].click();", next_link)
-        
-        WebDriverWait(driver, 30).until(
-            lambda d: get_current_page_number(d) != current_page and get_current_page_number(d) != ""
-        )
+
+        WebDriverWait(driver, 30).until(lambda d: get_current_page_number(
+            d) != current_page and get_current_page_number(d) != "")
         wait_ready(driver, 30)
         time.sleep(1.5)
         return True
@@ -610,21 +657,23 @@ def main():
 
         log_message("Resolving search date range...")
         from_date, to_date = get_date_range(DATE_INPUT_FILE)
-        
+
         log_message(f"Executing search for period: {from_date} - {to_date}")
         perform_automated_search(driver, wait, from_date, to_date)
 
         page_no = 1
         while True:
             log_message(f"Processing page: {page_no}")
-            
+
             page_text = driver.page_source.lower()
             if "no results" in page_text or "no records found" in page_text:
                 log_message("No records found for this date range.")
                 break
 
             try:
-                wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]')))
+                wait.until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]')))
             except Exception:
                 if "no results" in page_text or "no records found" in page_text:
                     log_message("No records found.")
@@ -651,13 +700,15 @@ def main():
                     summary = parse_summary_from_row(driver, row, wait)
                     row_output.update(summary)
 
-                    current_record_number = clean_text(row_output.get("Record Number", ""))
+                    current_record_number = clean_text(
+                        row_output.get("Record Number", ""))
                     if current_record_number and current_record_number in existing_record_numbers:
                         log_message(f"Skipping: {current_record_number}")
                         continue
 
                     if is_record_clickable(row):
-                        log_message(f"Fetching details for: {current_record_number}")
+                        log_message(
+                            f"Fetching details for: {current_record_number}")
                         open_record_in_new_tab(driver, row)
                         details = parse_detail_page(driver, wait)
                         row_output.update(details)
