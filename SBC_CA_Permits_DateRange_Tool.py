@@ -280,12 +280,12 @@ def perform_automated_search(driver, wait, start_date, end_date):
 
 def get_result_table(driver, wait):
     return wait.until(EC.presence_of_element_located(
-        (By.XPATH, '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]')))
+        (By.XPATH, '//table[contains(@id,"dgvPermitList")]')))
 
 
 def detect_header_map(table):
     header_map = {}
-    rows = table.find_elements(By.XPATH, "./tbody/tr")
+    rows = table.find_elements(By.XPATH, ".//tr")
 
     for row in rows:
         ths = row.find_elements(By.TAG_NAME, "th")
@@ -319,13 +319,13 @@ def get_all_data_rows_count(driver):
     wait = WebDriverWait(driver, 15)
     try:
         wait.until(EC.presence_of_element_located(
-            (By.ID, "ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList")))
+            (By.XPATH, '//table[contains(@id, "dgvPermitList")]//tr[td]')))
     except Exception:
         return 0
 
     rows = driver.find_elements(
         By.XPATH,
-        '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]/tbody/tr[td]')
+        '//table[contains(@id, "dgvPermitList")]//tr[td]')
     count = 0
     for row in rows:
         try:
@@ -336,10 +336,10 @@ def get_all_data_rows_count(driver):
                     By.XPATH, './/table[contains(@class,"aca_pagination")]'):
                 continue
             first_cell_text = clean_text(tds[0].text) if len(tds) > 0 else ""
-            second_cell_text = clean_text(tds[1].text) if len(tds) > 1 else ""
+            third_cell_text = clean_text(tds[2].text) if len(tds) > 2 else ""
             if "record number" in first_cell_text.lower() or "date" in first_cell_text.lower():
                 continue
-            if second_cell_text:
+            if third_cell_text or len(clean_text(row.text)) > 5:
                 count += 1
         except Exception:
             pass
@@ -349,7 +349,7 @@ def get_all_data_rows_count(driver):
 def get_data_row_by_position(driver, position):
     rows = driver.find_elements(
         By.XPATH,
-        '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]/tbody/tr[td]')
+        '//table[contains(@id, "dgvPermitList")]//tr[td]')
 
     valid_rows = []
     for row in rows:
@@ -361,10 +361,10 @@ def get_data_row_by_position(driver, position):
                     By.XPATH, './/table[contains(@class,"aca_pagination")]'):
                 continue
             first_cell_text = clean_text(tds[0].text) if len(tds) > 0 else ""
-            second_cell_text = clean_text(tds[1].text) if len(tds) > 1 else ""
+            third_cell_text = clean_text(tds[2].text) if len(tds) > 2 else ""
             if "record number" in first_cell_text.lower() or "date" in first_cell_text.lower():
                 continue
-            if second_cell_text:
+            if third_cell_text or len(clean_text(row.text)) > 5:
                 valid_rows.append(row)
         except Exception:
             pass
@@ -692,7 +692,7 @@ def main():
             try:
                 wait.until(
                     EC.presence_of_element_located(
-                        (By.XPATH, '//*[@id="ctl00_PlaceHolderMain_dgvPermitList_gdvPermitList"]')))
+                        (By.XPATH, '//table[contains(@id,"dgvPermitList")]')))
             except Exception:
                 if "no results" in page_text or "no records found" in page_text:
                     log_message("No records found.")
