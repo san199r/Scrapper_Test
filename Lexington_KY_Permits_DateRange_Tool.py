@@ -11,6 +11,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 SEARCH_URL = "https://aca-prod.accela.com/LEXKY/Cap/CapHome.aspx?module=Building&TabName=Building"
@@ -82,7 +84,8 @@ def create_driver():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    driver = webdriver.Chrome(options=chrome_options)
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.set_page_load_timeout(120)
     return driver
 
