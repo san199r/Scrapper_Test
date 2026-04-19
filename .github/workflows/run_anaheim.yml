@@ -1,0 +1,39 @@
+name: Run Anaheim Scraper
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *' # Runs daily at 1 AM
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Run Anaheim Scraper
+        run: python Anaheim_CA_Permits_DateRange_Tool.py
+
+      - name: Upload Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: anaheim-output
+          path: "*.xlsx"
+          if-no-files-found: ignore
